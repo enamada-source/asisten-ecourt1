@@ -67,7 +67,6 @@
                     <button onclick="switchMenu('arsip')" id="btn-arsip" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-emerald-100 hover:bg-emerald-800 hover:text-white transition-all text-sm font-medium cursor-pointer">
                         <i class="fa-solid fa-box-archive w-5"></i> Arsip Perkara
                     </button>
-                    <!-- Navigasi Menu Baru Pengingat -->
                     <button onclick="switchMenu('pengingat')" id="btn-pengingat" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-emerald-100 hover:bg-emerald-800 hover:text-white transition-all text-sm font-medium cursor-pointer">
                         <i class="fa-solid fa-bell w-5"></i> Atur Pengingat
                     </button>
@@ -186,11 +185,11 @@
                                     </div>
                                 </div>
 
-                                <!-- COMPONENT TAMBAHAN: FITUR UPLOAD BERKAS FILE OPSIONAL -->
+                                <!-- FITUR UPLOAD BERKAS FILE DENGAN LIMIT PDF YANG LEBIH BESAR -->
                                 <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
                                     <h3 class="text-md font-bold text-amber-600 dark:text-amber-400 border-b pb-2"><i class="fa-solid fa-cloud-arrow-up mr-2"></i>Upload Lampiran (Opsional)</h3>
                                     <div>
-                                        <label class="block text-xs font-semibold uppercase mb-1">File Dokumen PDF (.pdf)</label>
+                                        <label class="block text-xs font-semibold uppercase mb-1">File Dokumen PDF (.pdf) - Max 20MB</label>
                                         <input type="file" id="p-upload-pdf" accept=".pdf" onchange="handleFileUpload(this, 'pdf')" class="w-full text-xs text-gray-500 border rounded p-1.5 bg-gray-50 dark:bg-gray-700 dark:text-gray-300">
                                         <span id="label-pdf-status" class="text-[10px] text-gray-400 mt-1 block"></span>
                                     </div>
@@ -294,6 +293,12 @@
                                 <div>
                                     <label class="block text-xs font-semibold uppercase mb-1">Alamat Domisili Tempat Tinggal</label>
                                     <textarea id="p-alamat" rows="2" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="Contoh: Silam Tengah, RT 001 RW 002..."></textarea>
+                                </div>
+
+                                <!-- KOLOM TAMBAHAN: CATATAN / NOTE KASUS UNTUK PIHAK BERPERKARA -->
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-amber-600 dark:text-amber-400 mb-1"><i class="fa-solid fa-note-sticky mr-1"></i> Catatan Khusus / Note Perkara (Penting)</label>
+                                    <textarea id="p-catatan" rows="2" class="w-full border border-amber-500/40 rounded p-2 text-sm bg-amber-50/20 dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400" placeholder="Contoh: Akte kelahiran anak belum dilampirkan, KTP suami buram, dll."></textarea>
                                 </div>
 
                                 <div class="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700 space-y-3">
@@ -510,8 +515,9 @@
                                         <th class="p-4">Status</th>
                                         <th class="p-4">Identitas (NIK/HP)</th>
                                         <th class="p-4">e-Court & SKUM</th>
-                                        <!-- KOLOM BARU UNTUK LAMPIRAN FILE BERKAS -->
                                         <th class="p-4">Lampiran Berkas</th>
+                                        <!-- KOLOM BARU DI TABEL ARSIP UNTUK MENAMPILKAN CATATAN / NOTE KASUS -->
+                                        <th class="p-4 w-48">Catatan/Note Khusus</th>
                                         <th class="p-4 text-center">Aksi</th>
                                     </tr>
                                 </thead>
@@ -522,10 +528,8 @@
                     </div>
                 </section>
 
-                <!-- SECTION BARU: KONTROL MANAJEMEN PENGINGAT (CRUD) -->
                 <section id="menu-pengingat" class="menu-content hidden space-y-6">
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <!-- Form Manajemen Pengingat -->
                         <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
                             <div class="border-b pb-2">
                                 <h3 class="text-md font-bold text-ma-green dark:text-emerald-400"><i class="fa-solid fa-bell-ring mr-2"></i>Konfigurasi Alarm Peringatan</h3>
@@ -559,7 +563,6 @@
                             </div>
                         </div>
 
-                        <!-- Daftar Pengingat yang Tersimpan -->
                         <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 lg:col-span-2 space-y-4">
                             <h4 class="text-sm font-bold text-gray-500 uppercase tracking-wider"><i class="fa-solid fa-list mr-2"></i>Daftar Pengingat Akhip Bulan</h4>
                             <div class="overflow-x-auto">
@@ -573,7 +576,6 @@
                                         </tr>
                                     </thead>
                                     <tbody id="reminderTableBody" class="divide-y divide-gray-100 dark:divide-gray-700">
-                                        <!-- Diisi via JavaScript -->
                                     </tbody>
                                 </table>
                             </div>
@@ -588,13 +590,12 @@
 
     <script>
         let dbPihak = JSON.parse(localStorage.getItem('db_ecourt_ptsp')) || [];
-        // Mengambil data database pengingat dari localStorage
         let dbReminders = JSON.parse(localStorage.getItem('db_ecourt_reminders')) || [];
         let currentMenu = 'dashboard';
         let sortField = 'tglInput';
         let sortAsc = false;
         let myChartHarian, myChartBulanan;
-        let alarmDismissed = false; // Flag status menyembunyikan peringatan sementara
+        let alarmDismissed = false; 
 
         document.addEventListener('DOMContentLoaded', () => {
             initClock();
@@ -604,18 +605,17 @@
             initCharts();
             updateDashboardStats();
             autoSetTanggalSurat();
-            checkReminderTrigger(); // Periksa pengingat saat aplikasi pertama kali dimuat
+            checkReminderTrigger(); 
         });
 
         function initClock() {
             setInterval(() => {
                 const now = new Date();
                 document.getElementById('liveClock').innerText = now.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'medium' });
-                checkReminderTrigger(); // Sinkronisasi jam waktu nyata untuk mendeteksi alarm otomatis per detik/menit
+                checkReminderTrigger(); 
             }, 1000);
         }
 
-        // --- SISTEM ENGINE FITUR PENGINGAT (REMINDER) ---
         function checkReminderTrigger() {
             if (dbReminders.length === 0 || alarmDismissed) return;
 
@@ -628,7 +628,6 @@
                     const stringWaktuTarget = `${r.targetDate}T${r.targetTime}`;
                     const waktuTarget = new Date(stringWaktuTarget);
 
-                    // Jika waktu sekarang melewati atau sama dengan waktu target yang ditentukan user
                     if (sekarang >= waktuTarget) {
                         alarmDitemukan = true;
                         pesanAlarm = r.message;
@@ -716,7 +715,7 @@
             localStorage.setItem('db_ecourt_reminders', JSON.stringify(dbReminders));
             clearFormReminder();
             renderReminderTable();
-            alarmDismissed = false; // Reset status tutup sementara agar mendeteksi ulang
+            alarmDismissed = false; 
             checkReminderTrigger();
         }
 
@@ -760,9 +759,8 @@
             document.getElementById('r-time').value = '';
             document.getElementById('r-status').value = 'aktif';
         }
-        // --------------------------------------------------
 
-        // --- SISTEM FUNGSI ENGINE CONVERT FILE KE BASE64 STRING ---
+        // PERUBAHAN ENGINE CONVERT FILE KE BASE64 STRING - BATAS UKURAN PDF DIUBAH MENJADI 20MB
         function handleFileUpload(inputElement, fileType) {
             const file = inputElement.files[0];
             const statusLabel = document.getElementById(`label-${fileType}-status`);
@@ -774,11 +772,20 @@
                 return;
             }
 
-            // Batasi ukuran file max 3MB agar LocalStorage tidak penuh berlebihan
-            if (file.size > 3 * 1024 * 1024) {
-                alert('Ukuran file terlalu besar! Maksimum ukuran file adalah 3MB.');
-                inputElement.value = '';
-                return;
+            // Validasi Khusus Jika File PDF dinaikkan menjadi maksimal 20 MB
+            if (fileType === 'pdf') {
+                if (file.size > 20 * 1024 * 1024) { 
+                    alert('Ukuran file PDF terlalu besar! Maksimum ukuran file PDF di sistem ini adalah 20MB.');
+                    inputElement.value = '';
+                    return;
+                }
+            } else {
+                // Untuk berkas file word tetap dipertahankan batas amannya yaitu 3MB
+                if (file.size > 3 * 1024 * 1024) {
+                    alert('Ukuran file Word terlalu besar! Maksimum ukuran file Word adalah 3MB.');
+                    inputElement.value = '';
+                    return;
+                }
             }
 
             const reader = new FileReader();
@@ -791,7 +798,6 @@
             reader.readAsDataURL(file);
         }
 
-        // Fungsi men-download file Base64 kembali ke komputer lokal user
         function downloadAttachedFile(base64Data, filename) {
             if(!base64Data) return;
             const link = document.createElement('a');
@@ -799,7 +805,6 @@
             link.download = filename;
             link.click();
         }
-        // -----------------------------------------------------------
 
         function initFilterBulanTahunSurat() {
             const selectBulan = document.getElementById('s-filter-bulan');
@@ -870,7 +875,7 @@
                 document.getElementById('menu-arsip-data').classList.remove('hidden');
                 document.getElementById('btn-arsip').classList.add('bg-emerald-800', 'text-white');
                 renderArsipTable();
-            } else if (menu === 'pengingat') { // Menu Navigasi Pengingat
+            } else if (menu === 'pengingat') { 
                 title = "Atur Pengingat Penutupan Perkara Akhir Bulan";
                 document.getElementById('menu-pengingat').classList.remove('hidden');
                 document.getElementById('btn-pengingat').classList.add('bg-emerald-800', 'text-white');
@@ -930,7 +935,6 @@
             document.getElementById('form-id').value = '';
             document.getElementById('p-skum-status').checked = false;
             
-            // Bersihkan data upload tersembunyi
             document.getElementById('p-file-pdf-data').value = '';
             document.getElementById('p-file-pdf-name').value = '';
             document.getElementById('p-file-word-data').value = '';
@@ -971,7 +975,9 @@
                 bankPemilik: document.getElementById('p-bank-pemilik').value || '-',
                 isLunasSKUM: document.getElementById('p-skum-status').checked,
                 
-                // Menyimpan data nama & isi file unggahan berkas
+                // DATA TAMBAHAN NOTE/CATATAN KHUSUS UNTUK PIHAK
+                catatan: document.getElementById('p-catatan').value || '',
+
                 fileNamePdf: document.getElementById('p-file-pdf-name').value || '',
                 fileDataPdf: document.getElementById('p-file-pdf-data').value || '',
                 fileNameWord: document.getElementById('p-file-word-name').value || '',
@@ -1018,13 +1024,15 @@
             document.getElementById('p-pass-ecourt').value = pihak.passEcourt;
             document.getElementById('p-alamat').value = pihak.alamat === '-' ? '' : pihak.alamat;
             
+            // Mengisi kembali nilai input Catatan/Note Kasus
+            document.getElementById('p-catatan').value = pihak.catatan || '';
+
             document.getElementById('p-bank-nama').value = pihak.bankNama === '-' ? '' : (pihak.bankNama || '');
             document.getElementById('p-bank-nomor').value = pihak.bankNomor === '-' ? '' : (pihak.bankNomor || '');
             document.getElementById('p-bank-pemilik').value = pihak.bankPemilik === '-' ? '' : (pihak.bankPemilik || '');
 
             document.getElementById('p-skum-status').checked = pihak.isLunasSKUM || false;
 
-            // Memuat file lama jika sebelumnya pernah ada berkas diunggah
             document.getElementById('p-file-pdf-name').value = pihak.fileNamePdf || '';
             document.getElementById('p-file-pdf-data').value = pihak.fileDataPdf || '';
             document.getElementById('p-file-word-name').value = pihak.fileNameWord || '';
@@ -1079,7 +1087,7 @@
             tbody.innerHTML = '';
 
             let filtered = dbPihak.filter(p => {
-                const matchQuery = p.nama.toLowerCase().includes(query) || p.nik.includes(query) || p.usernameEcourt.toLowerCase().includes(query);
+                const matchQuery = p.nama.toLowerCase().includes(query) || p.nik.includes(query) || p.usernameEcourt.toLowerCase().includes(query) || (p.catatan && p.catatan.toLowerCase().includes(query));
                 const matchStatus = status === 'All' || p.type === status;
                 const matchTanggal = !tanggal || p.tglInput === tanggal;
                 
@@ -1100,8 +1108,7 @@
             });
 
             if(filtered.length === 0) {
-                // Kolom colspan disesuaikan menjadi 8 dari sebelumnya 7 karena ada penambahan kolom lampiran file
-                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-gray-400">Arsip data kosong atau tidak ditemukan.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-gray-400">Arsip data kosong atau tidak ditemukan.</td></tr>`;
                 return;
             }
 
@@ -1113,7 +1120,6 @@
                     ? `<button onclick="toggleSkumStatusDirectly('${p.id}')" class="mt-1 px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1 cursor-pointer" title="Klik untuk ubah ke Belum Bayar"><i class="fa-solid fa-circle-check"></i> Lunas SKUM</button>`
                     : `<button onclick="toggleSkumStatusDirectly('${p.id}')" class="mt-1 px-2 py-0.5 text-[10px] font-bold rounded bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800 flex items-center gap-1 cursor-pointer" title="Klik untuk konfirmasi Lunas"><i class="fa-solid fa-circle-xmark animate-pulse"></i> Belum Bayar</button>`;
 
-                // Mengolah tampilan tombol download file berkas di baris tabel arsip
                 let pdfButton = p.fileDataPdf 
                     ? `<button onclick="downloadAttachedFile('${p.fileDataPdf}', '${p.fileNamePdf}')" class="flex items-center gap-1 px-1.5 py-0.5 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-950/40 dark:text-red-300 rounded text-[10px] font-medium transition-all" title="Download berkas PDF"><i class="fa-solid fa-file-pdf"></i> PDF</button>` 
                     : `<span class="text-gray-300 dark:text-gray-600 text-[10px]">-</span>`;
@@ -1121,6 +1127,11 @@
                 let wordButton = p.fileDataWord 
                     ? `<button onclick="downloadAttachedFile('${p.fileDataWord}', '${p.fileNameWord}')" class="flex items-center gap-1 px-1.5 py-0.5 bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 rounded text-[10px] font-medium transition-all" title="Download berkas Word"><i class="fa-solid fa-file-word"></i> Word</button>` 
                     : `<span class="text-gray-300 dark:text-gray-600 text-[10px]">-</span>`;
+
+                // Logika Tampilan Badge Catatan Khusus
+                let catatanTampil = p.catatan 
+                    ? `<div class="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900 rounded text-[11px] font-medium break-words leading-snug shadow-3xs"><i class="fa-solid fa-thumbtack text-[10px] text-amber-500 mr-1"></i> ${p.catatan}</div>`
+                    : `<span class="text-gray-400 italic text-[11px]">Tidak ada catatan</span>`;
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
@@ -1146,6 +1157,8 @@
                                 ${wordButton}
                             </div>
                         </td>
+                        <!-- MERENDER DATA KOLOM CATATAN KE DALAM STRUKTUR TABEL -->
+                        <td class="p-4">${catatanTampil}</td>
                         <td class="p-4 text-center">
                             <div class="flex items-center justify-center gap-1">
                                 <button onclick="editPihak('${p.id}')" class="p-1 text-blue-600 hover:bg-blue-100 rounded cursor-pointer" title="Ubah/Edit Berkas"><i class="fa-solid fa-user-pen"></i></button>
@@ -1518,10 +1531,11 @@
         }
 
         function exportToExcel() {
-            let csv = "No,Tanggal,Nama,Status,NIK,HP,Username,Password,StatusSKUM\n";
+            let csv = "No,Tanggal,Nama,Status,NIK,HP,Username,Password,StatusSKUM,Catatan\n";
             dbPihak.forEach((p, i) => {
                 const skumText = p.isLunasSKUM ? "Lunas/Dicetak" : "Belum Bayar";
-                csv += `${i+1},${p.tglInput},"${p.nama}",${p.type},'${p.nik},'${p.hp},${p.usernameEcourt},${p.passEcourt},${skumText}\n`;
+                const cleanCatatan = p.catatan ? p.catatan.replace(/"/g, '""') : '';
+                csv += `${i+1},${p.tglInput},"${p.nama}",${p.type},'${p.nik},'${p.hp},${p.usernameEcourt},${p.passEcourt},${skumText},"${cleanCatatan}"\n`;
             });
             const l = document.createElement("a");
             l.setAttribute("href", encodeURI("data:text/csv;charset=utf-8," + csv));
