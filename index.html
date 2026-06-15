@@ -24,6 +24,22 @@
 </head>
 <body class="bg-gray-100 text-gray-800 transition-colors duration-200 dark:bg-gray-900 dark:text-gray-100">
 
+    <!-- AREA ALARM / PENGINGAT OTOMATIS (DIPICU OLEH TANGGAL & WAKTU) -->
+    <div id="containerAlarmOtomatis" class="no-print w-full hidden">
+        <div class="bg-amber-500 text-white px-6 py-3 flex justify-between items-center shadow-md border-b border-amber-600 animate-pulse">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                <div>
+                    <span class="font-bold uppercase tracking-wide text-sm">[PENGINGAT SISTEM] :</span>
+                    <span id="txtAlarmOtomatis" class="text-sm font-medium ml-1">Pendaftaran perkara akhir bulan akan segera ditutup!</span>
+                </div>
+            </div>
+            <button onclick="tutupSementaraAlarm()" class="text-white hover:text-gray-200 p-1 cursor-pointer" title="Sembunyikan Sementara">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+    </div>
+
     <div id="mainAppWrapper" class="flex h-screen overflow-hidden">
         
         <aside class="w-64 bg-ma-green text-white flex flex-col justify-between no-print shadow-xl flex-shrink-0">
@@ -50,6 +66,10 @@
                     </button>
                     <button onclick="switchMenu('arsip')" id="btn-arsip" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-emerald-100 hover:bg-emerald-800 hover:text-white transition-all text-sm font-medium cursor-pointer">
                         <i class="fa-solid fa-box-archive w-5"></i> Arsip Perkara
+                    </button>
+                    <!-- Navigasi Menu Baru Pengingat -->
+                    <button onclick="switchMenu('pengingat')" id="btn-pengingat" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-emerald-100 hover:bg-emerald-800 hover:text-white transition-all text-sm font-medium cursor-pointer">
+                        <i class="fa-solid fa-bell w-5"></i> Atur Pengingat
                     </button>
                 </nav>
             </div>
@@ -146,6 +166,12 @@
                         <input type="hidden" id="form-id">
                         <input type="hidden" id="form-type">
                         
+                        <!-- Variabel Tersembunyi untuk Data Berkas File -->
+                        <input type="hidden" id="p-file-pdf-data">
+                        <input type="hidden" id="p-file-pdf-name">
+                        <input type="hidden" id="p-file-word-data">
+                        <input type="hidden" id="p-file-word-name">
+
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             <div class="space-y-6 lg:col-span-1">
                                 <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
@@ -157,6 +183,21 @@
                                     <div>
                                         <label class="block text-xs font-semibold uppercase mb-1">Tanggal Input Berkas</label>
                                         <input type="date" id="p-tgl-input" required class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                    </div>
+                                </div>
+
+                                <!-- COMPONENT TAMBAHAN: FITUR UPLOAD BERKAS FILE OPSIONAL -->
+                                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+                                    <h3 class="text-md font-bold text-amber-600 dark:text-amber-400 border-b pb-2"><i class="fa-solid fa-cloud-arrow-up mr-2"></i>Upload Lampiran (Opsional)</h3>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">File Dokumen PDF (.pdf)</label>
+                                        <input type="file" id="p-upload-pdf" accept=".pdf" onchange="handleFileUpload(this, 'pdf')" class="w-full text-xs text-gray-500 border rounded p-1.5 bg-gray-50 dark:bg-gray-700 dark:text-gray-300">
+                                        <span id="label-pdf-status" class="text-[10px] text-gray-400 mt-1 block"></span>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">File Surat/Gugatan Word (.doc, .docx)</label>
+                                        <input type="file" id="p-upload-word" accept=".doc, .docx" onchange="handleFileUpload(this, 'word')" class="w-full text-xs text-gray-500 border rounded p-1.5 bg-gray-50 dark:bg-gray-700 dark:text-gray-300">
+                                        <span id="label-word-status" class="text-[10px] text-gray-400 mt-1 block"></span>
                                     </div>
                                 </div>
 
@@ -275,7 +316,6 @@
                                     </div>
                                 </div>
 
-                                <!-- FITUR CHECKLIST SKUM / STATUS PEMBAYARAN -->
                                 <div class="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
                                     <h4 class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide flex items-center gap-1 mb-2">
                                         <i class="fa-solid fa-receipt"></i> Administrasi Perkara & SKUM
@@ -470,12 +510,73 @@
                                         <th class="p-4">Status</th>
                                         <th class="p-4">Identitas (NIK/HP)</th>
                                         <th class="p-4">e-Court & SKUM</th>
+                                        <!-- KOLOM BARU UNTUK LAMPIRAN FILE BERKAS -->
+                                        <th class="p-4">Lampiran Berkas</th>
                                         <th class="p-4 text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="arsipTableBody" class="divide-y divide-gray-100 dark:divide-gray-700">
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECTION BARU: KONTROL MANAJEMEN PENGINGAT (CRUD) -->
+                <section id="menu-pengingat" class="menu-content hidden space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Form Manajemen Pengingat -->
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+                            <div class="border-b pb-2">
+                                <h3 class="text-md font-bold text-ma-green dark:text-emerald-400"><i class="fa-solid fa-bell-ring mr-2"></i>Konfigurasi Alarm Peringatan</h3>
+                                <p class="text-xs text-gray-400 mt-0.5">Atur kapan teks pengingat otomatis akan dimunculkan ke sistem.</p>
+                            </div>
+                            <input type="hidden" id="reminder-id">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase mb-1">Isi Pesan Peringatan</label>
+                                <textarea id="r-message" rows="3" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-medium" placeholder="Contoh: Stop Pendaftaran Perkara Akhir Bulan Mei 2026!"></textarea>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase mb-1">Tanggal Mulai</label>
+                                    <input type="date" id="r-date" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase mb-1">Waktu/Jam Mulai</label>
+                                    <input type="time" id="r-time" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase mb-1">Status Pengingat Aktif</label>
+                                <select id="r-status" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold">
+                                    <option value="aktif">Tampilkan Sesuai Waktu (Aktif)</option>
+                                    <option value="nonaktif">Sembunyikan Total (Non-Aktif)</option>
+                                </select>
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button onclick="clearFormReminder()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded text-xs font-bold hover:bg-gray-300">Batal/Reset</button>
+                                <button onclick="saveReminder()" class="flex-1 py-2 bg-ma-green text-white rounded text-xs font-bold hover-ma-green"><i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Alarm</button>
+                            </div>
+                        </div>
+
+                        <!-- Daftar Pengingat yang Tersimpan -->
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 lg:col-span-2 space-y-4">
+                            <h4 class="text-sm font-bold text-gray-500 uppercase tracking-wider"><i class="fa-solid fa-list mr-2"></i>Daftar Pengingat Akhip Bulan</h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs border-collapse">
+                                    <thead class="bg-gray-50 dark:bg-gray-700 text-gray-500 font-bold uppercase border-b border-gray-100 dark:divide-gray-600">
+                                        <tr>
+                                            <th class="p-3">Pesan / Pengingat</th>
+                                            <th class="p-3">Waktu Pemicu</th>
+                                            <th class="p-3">Status</th>
+                                            <th class="p-3 text-center">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="reminderTableBody" class="divide-y divide-gray-100 dark:divide-gray-700">
+                                        <!-- Diisi via JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -487,10 +588,13 @@
 
     <script>
         let dbPihak = JSON.parse(localStorage.getItem('db_ecourt_ptsp')) || [];
+        // Mengambil data database pengingat dari localStorage
+        let dbReminders = JSON.parse(localStorage.getItem('db_ecourt_reminders')) || [];
         let currentMenu = 'dashboard';
         let sortField = 'tglInput';
         let sortAsc = false;
         let myChartHarian, myChartBulanan;
+        let alarmDismissed = false; // Flag status menyembunyikan peringatan sementara
 
         document.addEventListener('DOMContentLoaded', () => {
             initClock();
@@ -500,14 +604,202 @@
             initCharts();
             updateDashboardStats();
             autoSetTanggalSurat();
+            checkReminderTrigger(); // Periksa pengingat saat aplikasi pertama kali dimuat
         });
 
         function initClock() {
             setInterval(() => {
                 const now = new Date();
                 document.getElementById('liveClock').innerText = now.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'medium' });
+                checkReminderTrigger(); // Sinkronisasi jam waktu nyata untuk mendeteksi alarm otomatis per detik/menit
             }, 1000);
         }
+
+        // --- SISTEM ENGINE FITUR PENGINGAT (REMINDER) ---
+        function checkReminderTrigger() {
+            if (dbReminders.length === 0 || alarmDismissed) return;
+
+            const sekarang = new Date();
+            let alarmDitemukan = false;
+            let pesanAlarm = "";
+
+            dbReminders.forEach(r => {
+                if (r.status === 'aktif' && r.targetDate && r.targetTime) {
+                    const stringWaktuTarget = `${r.targetDate}T${r.targetTime}`;
+                    const waktuTarget = new Date(stringWaktuTarget);
+
+                    // Jika waktu sekarang melewati atau sama dengan waktu target yang ditentukan user
+                    if (sekarang >= waktuTarget) {
+                        alarmDitemukan = true;
+                        pesanAlarm = r.message;
+                    }
+                }
+            });
+
+            const banner = document.getElementById('containerAlarmOtomatis');
+            if (alarmDitemukan) {
+                document.getElementById('txtAlarmOtomatis').innerText = pesanAlarm;
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        function tutupSementaraAlarm() {
+            alarmDismissed = true;
+            document.getElementById('containerAlarmOtomatis').classList.add('hidden');
+            showToast('Pengingat disembunyikan sementara!');
+        }
+
+        function renderReminderTable() {
+            const tbody = document.getElementById('reminderTableBody');
+            tbody.innerHTML = '';
+
+            if (dbReminders.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-400">Belum ada pengaturan jadwal pengingat.</td></tr>`;
+                return;
+            }
+
+            dbReminders.forEach(r => {
+                const badgeStatus = r.status === 'aktif' 
+                    ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold">Aktif</span>`
+                    : `<span class="px-2 py-0.5 bg-gray-200 text-gray-600 rounded font-semibold">Non-Aktif</span>`;
+                
+                const formatTgl = new Date(r.targetDate).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'});
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td class="p-3 font-medium">${r.message}</td>
+                        <td class="p-3 font-mono">${formatTgl} @ ${r.targetTime} WIB</td>
+                        <td class="p-3">${badgeStatus}</td>
+                        <td class="p-3 text-center">
+                            <div class="flex items-center justify-center gap-1">
+                                <button onclick="toggleStatusReminder('${r.id}')" class="p-1 text-emerald-600 hover:bg-emerald-50 rounded" title="Alihkan Status Sembunyikan/Munculkan"><i class="fa-solid fa-eye"></i></button>
+                                <button onclick="editReminder('${r.id}')" class="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteReminder('${r.id}')" class="p-1 text-red-600 hover:bg-red-50 rounded" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function saveReminder() {
+            const id = document.getElementById('reminder-id').value;
+            const message = document.getElementById('r-message').value;
+            const targetDate = document.getElementById('r-date').value;
+            const targetTime = document.getElementById('r-time').value;
+            const status = document.getElementById('r-status').value;
+
+            if (!message || !targetDate || !targetTime) {
+                alert('Mohon lengkapi isi pesan pengingat, tanggal, dan waktu pemicu!');
+                return;
+            }
+
+            const reminderData = {
+                id: id ? id : 'REM-' + Date.now(),
+                message: message,
+                targetDate: targetDate,
+                targetTime: targetTime,
+                status: status
+            };
+
+            if (id) {
+                const idx = dbReminders.findIndex(r => r.id === id);
+                if (idx !== -1) dbReminders[idx] = reminderData;
+                showToast('Pengingat diperbarui!');
+            } else {
+                dbReminders.push(reminderData);
+                showToast('Pengingat baru disimpan!');
+            }
+
+            localStorage.setItem('db_ecourt_reminders', JSON.stringify(dbReminders));
+            clearFormReminder();
+            renderReminderTable();
+            alarmDismissed = false; // Reset status tutup sementara agar mendeteksi ulang
+            checkReminderTrigger();
+        }
+
+        function editReminder(id) {
+            const r = dbReminders.find(item => item.id === id);
+            if (!r) return;
+
+            document.getElementById('reminder-id').value = r.id;
+            document.getElementById('r-message').value = r.message;
+            document.getElementById('r-date').value = r.targetDate;
+            document.getElementById('r-time').value = r.targetTime;
+            document.getElementById('r-status').value = r.status;
+        }
+
+        function toggleStatusReminder(id) {
+            const idx = dbReminders.findIndex(item => item.id === id);
+            if (idx !== -1) {
+                dbReminders[idx].status = dbReminders[idx].status === 'aktif' ? 'nonaktif' : 'aktif';
+                localStorage.setItem('db_ecourt_reminders', JSON.stringify(dbReminders));
+                showToast('Status kemunculan peringatan diubah!');
+                renderReminderTable();
+                alarmDismissed = false;
+                checkReminderTrigger();
+            }
+        }
+
+        function deleteReminder(id) {
+            if (confirm('Hapus pengaturan pengingat ini dari sistem?')) {
+                dbReminders = dbReminders.filter(item => item.id !== id);
+                localStorage.setItem('db_ecourt_reminders', JSON.stringify(dbReminders));
+                showToast('Pengingat berhasil dihapus!');
+                renderReminderTable();
+                checkReminderTrigger();
+            }
+        }
+
+        function clearFormReminder() {
+            document.getElementById('reminder-id').value = '';
+            document.getElementById('r-message').value = '';
+            document.getElementById('r-date').value = '';
+            document.getElementById('r-time').value = '';
+            document.getElementById('r-status').value = 'aktif';
+        }
+        // --------------------------------------------------
+
+        // --- SISTEM FUNGSI ENGINE CONVERT FILE KE BASE64 STRING ---
+        function handleFileUpload(inputElement, fileType) {
+            const file = inputElement.files[0];
+            const statusLabel = document.getElementById(`label-${fileType}-status`);
+            
+            if (!file) {
+                document.getElementById(`p-file-${fileType}-data`).value = '';
+                document.getElementById(`p-file-${fileType}-name`).value = '';
+                statusLabel.innerText = '';
+                return;
+            }
+
+            // Batasi ukuran file max 3MB agar LocalStorage tidak penuh berlebihan
+            if (file.size > 3 * 1024 * 1024) {
+                alert('Ukuran file terlalu besar! Maksimum ukuran file adalah 3MB.');
+                inputElement.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById(`p-file-${fileType}-data`).value = e.target.result;
+                document.getElementById(`p-file-${fileType}-name`).value = file.name;
+                statusLabel.innerText = `✓ Terunggah: ${file.name}`;
+                statusLabel.className = "text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-1 block";
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Fungsi men-download file Base64 kembali ke komputer lokal user
+        function downloadAttachedFile(base64Data, filename) {
+            if(!base64Data) return;
+            const link = document.createElement('a');
+            link.href = base64Data;
+            link.download = filename;
+            link.click();
+        }
+        // -----------------------------------------------------------
 
         function initFilterBulanTahunSurat() {
             const selectBulan = document.getElementById('s-filter-bulan');
@@ -516,7 +808,7 @@
             const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
             const sekarang = new Date();
             const bulanSkg = sekarang.getMonth(); 
-            const tahunSkg = Bird = 2026;
+            const tahunSkg = 2026;
 
             selectBulan.innerHTML = '';
             namaBulan.forEach((bln, idx) => {
@@ -578,6 +870,12 @@
                 document.getElementById('menu-arsip-data').classList.remove('hidden');
                 document.getElementById('btn-arsip').classList.add('bg-emerald-800', 'text-white');
                 renderArsipTable();
+            } else if (menu === 'pengingat') { // Menu Navigasi Pengingat
+                title = "Atur Pengingat Penutupan Perkara Akhir Bulan";
+                document.getElementById('menu-pengingat').classList.remove('hidden');
+                document.getElementById('btn-pengingat').classList.add('bg-emerald-800', 'text-white');
+                renderReminderTable();
+                clearFormReminder();
             }
             
             document.getElementById('menu-title').innerText = title;
@@ -631,6 +929,15 @@
             document.getElementById('pihakForm').reset();
             document.getElementById('form-id').value = '';
             document.getElementById('p-skum-status').checked = false;
+            
+            // Bersihkan data upload tersembunyi
+            document.getElementById('p-file-pdf-data').value = '';
+            document.getElementById('p-file-pdf-name').value = '';
+            document.getElementById('p-file-word-data').value = '';
+            document.getElementById('p-file-word-name').value = '';
+            document.getElementById('label-pdf-status').innerText = '';
+            document.getElementById('label-word-status').innerText = '';
+            
             autoSetTanggalInput();
         }
 
@@ -662,7 +969,13 @@
                 bankNama: document.getElementById('p-bank-nama').value || '-',
                 bankNomor: document.getElementById('p-bank-nomor').value || '-',
                 bankPemilik: document.getElementById('p-bank-pemilik').value || '-',
-                isLunasSKUM: document.getElementById('p-skum-status').checked 
+                isLunasSKUM: document.getElementById('p-skum-status').checked,
+                
+                // Menyimpan data nama & isi file unggahan berkas
+                fileNamePdf: document.getElementById('p-file-pdf-name').value || '',
+                fileDataPdf: document.getElementById('p-file-pdf-data').value || '',
+                fileNameWord: document.getElementById('p-file-word-name').value || '',
+                fileDataWord: document.getElementById('p-file-word-data').value || ''
             };
 
             if (id) {
@@ -710,6 +1023,26 @@
             document.getElementById('p-bank-pemilik').value = pihak.bankPemilik === '-' ? '' : (pihak.bankPemilik || '');
 
             document.getElementById('p-skum-status').checked = pihak.isLunasSKUM || false;
+
+            // Memuat file lama jika sebelumnya pernah ada berkas diunggah
+            document.getElementById('p-file-pdf-name').value = pihak.fileNamePdf || '';
+            document.getElementById('p-file-pdf-data').value = pihak.fileDataPdf || '';
+            document.getElementById('p-file-word-name').value = pihak.fileNameWord || '';
+            document.getElementById('p-file-word-data').value = pihak.fileDataWord || '';
+            
+            if(pihak.fileNamePdf) {
+                document.getElementById('label-pdf-status').innerText = `✓ File Tersimpan: ${pihak.fileNamePdf}`;
+                document.getElementById('label-pdf-status').className = "text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-1 block";
+            } else {
+                document.getElementById('label-pdf-status').innerText = '';
+            }
+
+            if(pihak.fileNameWord) {
+                document.getElementById('label-word-status').innerText = `✓ File Tersimpan: ${pihak.fileNameWord}`;
+                document.getElementById('label-word-status').className = "text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-1 block";
+            } else {
+                document.getElementById('label-word-status').innerText = '';
+            }
 
             document.getElementById('btn-cetak-akun-form').classList.remove('hidden');
         }
@@ -767,7 +1100,8 @@
             });
 
             if(filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-400">Arsip data kosong atau tidak ditemukan.</td></tr>`;
+                // Kolom colspan disesuaikan menjadi 8 dari sebelumnya 7 karena ada penambahan kolom lampiran file
+                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-gray-400">Arsip data kosong atau tidak ditemukan.</td></tr>`;
                 return;
             }
 
@@ -778,6 +1112,15 @@
                 const skumBadge = isLunas 
                     ? `<button onclick="toggleSkumStatusDirectly('${p.id}')" class="mt-1 px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1 cursor-pointer" title="Klik untuk ubah ke Belum Bayar"><i class="fa-solid fa-circle-check"></i> Lunas SKUM</button>`
                     : `<button onclick="toggleSkumStatusDirectly('${p.id}')" class="mt-1 px-2 py-0.5 text-[10px] font-bold rounded bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800 flex items-center gap-1 cursor-pointer" title="Klik untuk konfirmasi Lunas"><i class="fa-solid fa-circle-xmark animate-pulse"></i> Belum Bayar</button>`;
+
+                // Mengolah tampilan tombol download file berkas di baris tabel arsip
+                let pdfButton = p.fileDataPdf 
+                    ? `<button onclick="downloadAttachedFile('${p.fileDataPdf}', '${p.fileNamePdf}')" class="flex items-center gap-1 px-1.5 py-0.5 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-950/40 dark:text-red-300 rounded text-[10px] font-medium transition-all" title="Download berkas PDF"><i class="fa-solid fa-file-pdf"></i> PDF</button>` 
+                    : `<span class="text-gray-300 dark:text-gray-600 text-[10px]">-</span>`;
+                    
+                let wordButton = p.fileDataWord 
+                    ? `<button onclick="downloadAttachedFile('${p.fileDataWord}', '${p.fileNameWord}')" class="flex items-center gap-1 px-1.5 py-0.5 bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 rounded text-[10px] font-medium transition-all" title="Download berkas Word"><i class="fa-solid fa-file-word"></i> Word</button>` 
+                    : `<span class="text-gray-300 dark:text-gray-600 text-[10px]">-</span>`;
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
@@ -797,9 +1140,15 @@
                             <div class="text-gray-400 font-mono">Pass: ${p.passEcourt}</div>
                             <div>${skumBadge}</div>
                         </td>
+                        <td class="p-4 text-xs">
+                            <div class="flex flex-col gap-1.5">
+                                ${pdfButton}
+                                ${wordButton}
+                            </div>
+                        </td>
                         <td class="p-4 text-center">
                             <div class="flex items-center justify-center gap-1">
-                                <button onclick="editPihak('${p.id}')" class="p-1 text-blue-600 hover:bg-blue-100 rounded cursor-pointer" title="Ubah"><i class="fa-solid fa-user-pen"></i></button>
+                                <button onclick="editPihak('${p.id}')" class="p-1 text-blue-600 hover:bg-blue-100 rounded cursor-pointer" title="Ubah/Edit Berkas"><i class="fa-solid fa-user-pen"></i></button>
                                 <button onclick="printAkunDariArsip('${p.id}')" class="p-1 text-amber-600 hover:bg-amber-100 rounded cursor-pointer" title="Cetak Nota Akun"><i class="fa-solid fa-print"></i></button>
                                 <button onclick="deletePihak('${p.id}')" class="p-1 text-red-600 hover:bg-red-100 rounded cursor-pointer" title="Hapus"><i class="fa-solid fa-trash"></i></button>
                             </div>
